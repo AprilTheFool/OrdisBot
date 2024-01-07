@@ -1,6 +1,7 @@
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require("discord.js");
 const { token, relic_channel } = require("./config.json");
+const ordisQuote = require("./quotes.json");
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -40,7 +41,8 @@ class Relic {
       MT_SABOTAGE:"Sabotage",
       MT_EXCAVATE:"Excavation",
       MT_ASSAINATION:"Assasination",
-      MT_DISRUPTION:"Disruption"
+      MT_DISRUPTION:"Disruption",
+      MT_HIVE:"Hive"
     }[json.MissionType];
   }
 }
@@ -52,27 +54,47 @@ let relicTimer = setInterval(() => {
       .then(channel => {
         fetch("http://content.warframe.com/dynamic/worldState.php")
           .then(response => response.json())
+          // Format the data into a message
           .then(json => {
             for (let i = 0; i < Object.keys(json.ActiveMissions).length; i++) {
                 let relicObj = new Relic(json.ActiveMissions[i]);
               relicMessage = relicMessage + `${relicObj.modifierIcon} -*** ${relicObj.missionType}***${relicObj.hard === true ? " <:steelpath:1192865952912646297>" : ""}\n`
-              if (relicObj.missionType == undefined){
-                console.log(json.ActiveMission[i].MissionType);
-              }
+              // log the raw data to console if the mission type isnt specified in ./config.json
+              // if (relicObj.missionType == undefined){
+              //   console.log(json.ActiveMission[i].MissionType);
+              // }
             }
+            // clear the channel of prior messages
             channel.bulkDelete(5);
-            channel.send(relicMessage);
+            // wait 1s, then send the message in the channel specified in ./config.json
+            setTimeout(() => {
+              channel.send(relicMessage);
+              console.log("ORDIS >> Updated relics");
+            }, 1000);
           })
           .catch(function (err) {
-            console.log("Unable to fetch -", err);
+            console.log("ORDIS >> Unable to fetch -", err);
           });
       })
       .catch(console.error);
-  }, 120000);
+  }, 60000);
+
+// choose a random status from ./quotes.json
+// function getRandomQuote(){
+//   return ordisQuote[Math.floor(Math.random() * ordisQuote.length)]
+// }
+
+// Update status every 5m
+let quoteTimer = setInterval(() => {
+  client.user.setPresence({ activities: [{ name: ordisQuote[Math.floor(Math.random() * ordisQuote.length)] }], status: 'online' });
+  console.log('ORDIS >> Updated status')
+}, 300000);
+
 
 // When the client is ready, run this code (only once).
 client.once(Events.ClientReady, (readyClient) => {
-  console.log(`Hello, operator.`);
+  console.log(`ORDIS >> Hello, operator.`);
+  client.user.setPresence({ activities: [{ name: 'Warframe' }], status: 'online' });
 });
 
 // Log in to Discord with your client's token
